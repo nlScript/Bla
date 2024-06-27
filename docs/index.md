@@ -1,9 +1,8 @@
 <link href='https://fonts.googleapis.com/css?family=Caveat' rel='stylesheet'>
-<!--link rel="stylesheet" href="../../picnic.min.css"-->
-<link rel="stylesheet" href="../../github-markdown.css">
-<link rel="stylesheet" href="../../projects.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/intellij-light.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"></script>
+<link rel="stylesheet" href="css/github-markdown.css">
+<link rel="stylesheet" href="css/projects.css">
+<link rel="stylesheet" href="css//intellij-light.min.css">
+<script src="js/highlight-11.6.0.min.js"></script>
 <script>
 function showDialog(id) {
   document.getElementById(id).showModal();

@@ -1,0 +1,17 @@
+import ij.gui.GenericDialog;
+
+gd = new GenericDialog("Image Preprocessing");
+
+gd.addCheckbox("Apply Gaussian blurring", true);
+gd.addNumericField("Standard deviation", 1.0, 1);
+
+gd.addCheckbox("Apply median filtering", true);
+gd.addNumericField("Window radius", 1.0, 1);
+
+gd.addCheckbox("Apply background subtraction", true);
+gd.addNumericField("Window radius", 50, 0);
+
+gd.addCheckbox("Apply intensity normalization", true);
+gd.addCheckbox("Convert to grayscale", true);
+
+gd.showDialog();

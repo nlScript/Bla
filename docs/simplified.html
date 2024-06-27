@@ -1,0 +1,279 @@
+<article class="markdown-body">
+<p><link href='https://fonts.googleapis.com/css?family=Caveat' rel='stylesheet'></p>
+<!--link rel="stylesheet" href="../../picnic.min.css"-->
+<p><link rel="stylesheet" href="../../github-markdown.css"><br />
+<link rel="stylesheet" href="../../projects.css"><br />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/intellij-light.min.css"></p>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"></script>
+<script>
+function showDialog(id) {
+  document.getElementById(id).showModal();
+  document.documentElement.style.overflowY = 'hidden';
+  return false; // to disable href
+}
+
+function hideDialog(id)  {
+  document.getElementById(id).close();
+  document.documentElement.style.overflowY = '';
+  return false; // to disable href
+}
+</script>
+<style>
+.markdown-body h1 {
+  font-family: 'Caveat';
+  font-size: 40;
+  background-color: #183d3d;
+  color: white;
+  padding: 40px;
+}
+
+.markdown-body h2 {
+  margin-top: 3em;
+}
+
+.markdown-body img {
+  margin: 50px;
+}
+
+/*
+table {
+  width:100%;
+}
+table td {
+  padding-top: 1em;
+  padding-bottom: 1em;
+}
+*/
+
+dialog {
+  max-width: 800px;
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
+  border-width: 0px;
+  box-shadow: 0px 0px 15px;
+}
+
+dialog::backdrop {
+  background-color: #000000a0;
+}
+
+details summary {
+  display: block;
+}
+
+.content {
+  background-color: #f5f5f5;
+  margin: 1em;
+  margin-right: 0px;
+  padding: 10px;
+  padding-bottom: 1px;
+  font-size: smaller;
+  border-radius: 5px;
+}
+
+@keyframes details-show {
+  from {
+    opacity:0;
+    transform: var(--details-translate, translateY(-0.5em));
+  }
+}
+
+details[open] > *:not(summary) {
+  animation: details-show 150ms ease-in-out;
+}
+
+/*
+table th:first-of-type {
+  width:20%
+}
+table th:nth-of-type(2) {
+  width:10%
+}
+table th:nth-of-type(3) {
+  width:40%
+}
+table th:nth-of-type(4) {
+  width:30%
+}
+*/
+
+</style>
+<h1 id="natural-language-scripting-a-first-tutorialbr-image-pre-processing">Natural Language Scripting: A first tutorial<br> Image Pre-processing</h1>
+<p>The Natural Language Scripting (NLS) library provides a framework for replacing graphical user interfaces (GUIs) with a unifiedscripting interface based on natural language.</p>
+<p>It provides all the tools necessary for creating domain-specific languages with a natural English syntax for any application:</p>
+<ul>
+<li>Means to define custom lanugage sentences conveniently.</li>
+<li>Define for each language expression what should happen upon parsing it.</li>
+<li>A ready editor to be displayed to the user, equipped with autocompletion based on the defined language.</li>
+<li>Integrated parsing engine and evaluation environment.</li>
+<li>Tools for debugging the language.</li>
+<li>Integrated Error handling</li>
+</ul>
+<h2 id="basic-usage">Basic usage</h2>
+<p>The Natural Language Scripting framework offers a convenient way to define the sentences your interface should understand, and provides an auto-completion enabled text editor for users to enter their instructions. The following code snippet shows how to create a parser, how to define a pattern for a sentence for it to parse, and how to display the editor:</p>
+<pre><code class="hljs java language-java"><span class="hljs-comment">// Create an instance to our backend</span>
+<span class="hljs-type">Preprocessing</span> <span class="hljs-variable">preprocessing</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Preprocessing</span>();
+
+<span class="hljs-comment">// Create a parser</span>
+<span class="hljs-type">Parser</span> <span class="hljs-variable">parser</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Parser</span>();
+
+<span class="hljs-comment">// Teach the parser a first sentence</span>
+parser.defineSentence(
+
+    <span class="hljs-comment">// The template of the sentence: any variable which is read from the user&#x27;s input</span>
+    <span class="hljs-comment">// is written in &#x27;{&#x27; and &#x27;}&#x27;, and specified by a name, a type and optionally a quantifier</span>
+    <span class="hljs-string">&quot;Apply Gaussian blurring with a standard deviation of {stddev:float} pixel(s).&quot;</span>,
+
+    <span class="hljs-comment">// An evaluator, whose single function is called upon parsing the sentence defined above. It</span>
+    <span class="hljs-comment">// receives a &#x27;ParsedNode&#x27;, which can be used to evaluate the variables:</span>
+    <span class="hljs-keyword">new</span> <span class="hljs-title class_">Evaluator</span>() {
+        <span class="hljs-keyword">public</span> Object <span class="hljs-title function_">evaluate</span><span class="hljs-params">(ParsedNode pn)</span> {
+            <span class="hljs-type">double</span> <span class="hljs-variable">stdDev</span> <span class="hljs-operator">=</span> (<span class="hljs-type">double</span>)pn.evaluate(<span class="hljs-string">&quot;stddev&quot;</span>);
+            preprocessing.gaussianBlur((<span class="hljs-type">float</span>)stdDev);
+            <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>;
+        }
+    });
+
+<span class="hljs-comment">// Display an editor, to enter and run user input:</span>
+<span class="hljs-keyword">new</span> <span class="hljs-title class_">ACEditor</span>(parser).setVisible(<span class="hljs-literal">true</span>);</code></pre>
+<p>In this example we state that we expect a literal "Apply Gaussian blurring with a standard deviation of ", followed by a floating point number, which we name "stddev" for later reference, followed by the literal "pixel(s).".</p>
+<p>The evaluator uses a <code>Preprocessing</code> object which could be implemented like this, using ImageJ as an underlying image processing library:</p>
+<p><details><summary><b>Preprocessing.java</b></summary></p>
+<pre><code class="hljs"><span class="hljs-keyword">import</span> ij.IJ;
+<span class="hljs-keyword">import</span> ij.ImagePlus;
+<span class="hljs-keyword">import</span> ij.process.ImageProcessor;
+
+<span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">Preprocessing</span> {
+
+    <span class="hljs-keyword">private</span> ImagePlus image;
+
+    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">Preprocessing</span><span class="hljs-params">(ImagePlus image)</span> </span>{
+        <span class="hljs-keyword">this</span>.image = image;
+    }
+
+    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-type">void</span> <span class="hljs-title">gaussianBlur</span><span class="hljs-params">(<span class="hljs-type">float</span> stdDev)</span> </span>{
+        IJ.<span class="hljs-built_in">run</span>(image, <span class="hljs-string">&quot;Gaussian Blur...&quot;</span>, <span class="hljs-string">&quot;sigma=&quot;</span> + stdDev);
+    }
+
+    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-type">void</span> <span class="hljs-title">medianFilter</span><span class="hljs-params">(<span class="hljs-type">int</span> radius)</span> </span>{
+        IJ.<span class="hljs-built_in">run</span>(image, <span class="hljs-string">&quot;Median...&quot;</span>, <span class="hljs-string">&quot;radius=&quot;</span> + radius);
+    }
+
+    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-type">void</span> <span class="hljs-title">subtractBackground</span><span class="hljs-params">(<span class="hljs-type">float</span> radius)</span> </span>{
+        IJ.<span class="hljs-built_in">run</span>(image, <span class="hljs-string">&quot;Subtract Background...&quot;</span>, <span class="hljs-string">&quot;rolling=50&quot;</span>);
+    }
+
+    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-type">void</span> <span class="hljs-title">convertToGray</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-keyword">if</span>(image.<span class="hljs-built_in">getType</span>() == ImagePlus.COLOR_RGB)
+            IJ.<span class="hljs-built_in">run</span>(image, <span class="hljs-string">&quot;8-bit&quot;</span>, <span class="hljs-string">&quot;&quot;</span>);
+    }
+
+    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-type">void</span> <span class="hljs-title">intensityNormalization</span><span class="hljs-params">()</span> </span>{
+        <span class="hljs-built_in">convertToGray</span>();
+        ImageProcessor ip = image.<span class="hljs-built_in">getProcessor</span>();
+        <span class="hljs-type">double</span> min = ip.<span class="hljs-built_in">getMin</span>();
+        <span class="hljs-type">double</span> max = ip.<span class="hljs-built_in">getMax</span>();
+        ip = ip.<span class="hljs-built_in">convertToFloat</span>();
+        ip.<span class="hljs-built_in">subtract</span>(min);
+        ip.<span class="hljs-built_in">multiply</span>(<span class="hljs-number">1</span> / (max - min));
+        image.<span class="hljs-built_in">setProcessor</span>(ip);
+    }
+}
+</code></pre>
+<p></details></p>
+<p>This is how it looks like:</p>
+<video style="margin: auto; display: block;" width="800" controls>
+  <source src="images/2023-09-07-13-11-46.cropped.mp4" type="video/mp4">
+</video>
+<h3 id="more-details">More details:</h3>
+<ul>
+<li>Details how to define variables</li>
+<li>Built-in types apart from <code>float</code></li>
+<li>More detail about custom types</li>
+<li>The same application, as a step-by-step tutorial</li>
+</ul>
+<h2 id="motivation">Motivation</h2>
+<p>Graphical user interfaces can easily become complex and confusing as the number of user input parameters increases. This is particularly true if a workflow needs to be configured, where (i) each step has its own set of parameters, (ii) steps can occur in any order and (iii) steps can be repeated arbitrarily. Consider the configuration of an image pre-processing workflow, which consists of the following algorithms, each having its own set of parameters:</p>
+<ul>
+<li>Gaussian blurring (standard deviation)</li>
+<li>Median filtering (window radius)</li>
+<li>Background subtraction (window radius)</li>
+<li>Conversion to grayscale</li>
+<li>Intensity normalization</li>
+</ul>
+<p>A traditional graphical user interface (GUI) could e.g. look like this:</p>
+<p><img src="images/Screenshot-00.png" alt="" /></p>
+<p>where the user can activate the various algorithms and specify their parameters as necessary. This user interface however does not take into account that different algorithms could occur repeatedly, and it does not allow to change the order.</p>
+<p>Using Natural Language Scripting, we want to implement a text-based interface which reads and executes text like:</p>
+<pre><code class="hljs bash language-bash">Apply Gaussian blurring with a standard deviation of 3 pixel(s).
+Subtract the background with a window readius of 30 pixel(s).
+Apply Median filtering with a window radius of 1 pixel(s).
+Normalize intensities.
+Apply Gaussian blurring with a standard deviation of 1 pixel(s).</code></pre>
+<h2 id="custom-types">Custom types</h2>
+<p>It is possible and also common to define custom types. We could e.g. define a type <code>filter-size</code> which consists of a floating point number and a unit (e.g. <code>pixel(s)</code>). In <code>defineSentence</code> we could then use <code>filter-size</code> as type for the standard deviation parameter:</p>
+<pre><code class="hljs java language-java">parser.defineType(
+    <span class="hljs-comment">// a name for the type:</span>
+    <span class="hljs-string">&quot;filter-size&quot;</span>,
+
+    <span class="hljs-comment">// a template string, similar to the one used in &#x27;defineSentence&#x27;:</span>
+    <span class="hljs-string">&quot;{stddev:float} pixel(s)&quot;</span>,
+
+    <span class="hljs-comment">// An evaluator, which evaluates this type upon parsing to a custom Java type</span>
+    <span class="hljs-comment">// In this example, it will implicitly evaluate to a Double (because the type</span>
+    <span class="hljs-comment">// of &quot;stddev&quot; is Double).</span>
+    <span class="hljs-keyword">new</span> <span class="hljs-title class_">Evaluator</span>() {
+        <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">evaluate</span><span class="hljs-params">(ParsedNode pn)</span> {
+            <span class="hljs-keyword">return</span> pn.evaluate(<span class="hljs-string">&quot;stddev&quot;</span>);
+        }
+    },
+
+    <span class="hljs-comment">// Use an optional third parameter to specify that auto-completion should</span>
+    <span class="hljs-comment">// complete the entire type, and insert a placeholder for &#x27;stddev&#x27;.</span>
+    <span class="hljs-literal">true</span>);
+
+<span class="hljs-comment">// Now use the type in a sentence:</span>
+parser.defineSentence(
+    <span class="hljs-string">&quot;Apply Gaussian blurring with a standard deviation of {stddev:filter-size}.&quot;</span>,
+    <span class="hljs-keyword">new</span> <span class="hljs-title class_">Evaluator</span>() {
+        <span class="hljs-keyword">public</span> Object <span class="hljs-title function_">evaluate</span><span class="hljs-params">(ParsedNode pn)</span> {
+            <span class="hljs-type">double</span> <span class="hljs-variable">stdDev</span> <span class="hljs-operator">=</span> (<span class="hljs-type">double</span>)pn.evaluate(<span class="hljs-string">&quot;stddev&quot;</span>);
+            preprocessing.gaussianBlur((<span class="hljs-type">float</span>)stdDev);
+            <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>;
+        }
+    });</code></pre>
+<p>This will work like above, but auto-completion is improved and looks like:</p>
+<p><img src="images/Screenshot-02.png" alt="" /></p>
+<h2 id="finalizing">Finalizing</h2>
+<p>Now we can define the other sentences like this:</p>
+<pre><code class="hljs java language-java">parser.defineSentence(
+    <span class="hljs-string">&quot;Apply Median filtering with a window of radius {window-size:filter-size}.&quot;</span>,
+    <span class="hljs-keyword">new</span> <span class="hljs-title class_">Evaluator</span>() {
+        <span class="hljs-keyword">public</span> Object <span class="hljs-title function_">evaluate</span><span class="hljs-params">(ParsedNode pn)</span> {
+            <span class="hljs-type">int</span> <span class="hljs-variable">windowSize</span> <span class="hljs-operator">=</span> (<span class="hljs-type">int</span>)pn.evaluate(<span class="hljs-string">&quot;window-size&quot;</span>);
+            preprocessing.medianFilter(windowSize);
+            <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>;
+        }
+    });
+
+parser.defineSentence(
+    <span class="hljs-string">&quot;Normalize intensities.&quot;</span>,
+    <span class="hljs-keyword">new</span> <span class="hljs-title class_">Evaluator</span>() {
+        <span class="hljs-keyword">public</span> Object <span class="hljs-title function_">evaluate</span><span class="hljs-params">(ParsedNode pn)</span> {
+            preprocessing.intensityNormalization();
+            <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>;
+        }
+    });
+
+parser.defineSentence(
+    <span class="hljs-string">&quot;Subtract the background with a standard deviation of {window-size:filter-size}.&quot;</span>,
+    <span class="hljs-keyword">new</span> <span class="hljs-title class_">Evaluator</span>() {
+        <span class="hljs-keyword">public</span> Object <span class="hljs-title function_">evaluate</span><span class="hljs-params">(ParsedNode pn)</span> {
+            <span class="hljs-type">int</span> <span class="hljs-variable">windowSize</span> <span class="hljs-operator">=</span> (<span class="hljs-type">int</span>)pn.evaluate(<span class="hljs-string">&quot;window-size&quot;</span>);
+            preprocessing.subtractBackground(windowSize);
+            <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>;
+        }
+    });</code></pre>
+<p><br><br />
+<br><br />
+<br></p></article>

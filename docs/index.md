@@ -1,11 +1,107 @@
+<link href='https://fonts.googleapis.com/css?family=Caveat' rel='stylesheet'>
+<!--link rel="stylesheet" href="../../picnic.min.css"-->
+<link rel="stylesheet" href="../../github-markdown.css">
+<link rel="stylesheet" href="../../projects.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/intellij-light.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"></script>
+<script>
+function showDialog(id) {
+  document.getElementById(id).showModal();
+  document.documentElement.style.overflowY = 'hidden';
+  return false; // to disable href
+}
+
+function hideDialog(id)  {
+  document.getElementById(id).close();
+  document.documentElement.style.overflowY = '';
+  return false; // to disable href
+}
+</script>
+<style>
+.markdown-body h1 {
+  font-family: 'Caveat';
+  font-size: 40;
+  background-color: #183d3d;
+  color: white;
+  padding: 40px;
+}
+
+.markdown-body h2 {
+  margin-top: 3em;
+}
+
+.markdown-body img {
+  margin: 50px;
+}
+
+/*
+table {
+  width:100%;
+}
+table td {
+  padding-top: 1em;
+  padding-bottom: 1em;
+}
+*/
+
+dialog {
+  max-width: 800px;
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
+  border-width: 0px;
+  box-shadow: 0px 0px 15px;
+}
+
+dialog::backdrop {
+  background-color: #000000a0;
+}
+
+details summary {
+  display: block;
+}
+
+.content {
+  background-color: #f5f5f5;
+  margin: 1em;
+  margin-right: 0px;
+  padding: 10px;
+  padding-bottom: 1px;
+  font-size: smaller;
+  border-radius: 5px;
+}
+
+@keyframes details-show {
+  from {
+    opacity:0;
+    transform: var(--details-translate, translateY(-0.5em));
+  }
+}
+
+details[open] > *:not(summary) {
+  animation: details-show 150ms ease-in-out;
+}
+
+/*
+table th:first-of-type {
+  width:20%
+}
+table th:nth-of-type(2) {
+  width:10%
+}
+table th:nth-of-type(3) {
+  width:40%
+}
+table th:nth-of-type(4) {
+  width:30%
+}
+*/
+
+</style>
+
+
 # Natural Language Scripting: A first tutorial<br> Image Pre-processing
 
 ## Why use a natural scripting interface
-
-<div style="background-color: green;">
-hehehe
-</div>
-
 Graphical user interfaces can easily become complex and confusing as the number of user input parameters increases. This is particularly true if a workflow needs to be configured, where (i) each step has its own set of parameters, (ii) steps can occur in any order and (iii) steps can be repeated arbitrarily. Consider the configuration of an image pre-processing workflow, which consists of the following algorithms, each having its own set of parameters:
 - Gaussian blurring (standard deviation)
 - Median filtering (window radius)
@@ -15,9 +111,7 @@ Graphical user interfaces can easily become complex and confusing as the number 
 
 A traditional graphical user interface (GUI) could e.g. look like this:
 
-<p align="center">
-<img src="assets/Screenshot-00.png" />
-</p>
+![](images/Screenshot-00.png)
 
 where the user can activate the various algorithms and specify their parameters as necessary. This user interface however does not take into account that different algorithms could occur repeatedly, and it does not allow to change the order.
 
@@ -31,11 +125,9 @@ Apply Gaussian blurring with a standard deviation of 1 pixel(s).
 ```
 
 ## Create the backend
-
 First of all, we'll implement a backend which does the actual processing. We therefore create a class that implements the actual algorithms. It uses Fiji as an underlying image processing library:
 <details><summary><b>Preprocessing.java</b></summary>
-
-```java
+<pre><code>import ij.IJ;
 import ij.ImagePlus;
 import ij.process.ImageProcessor;
 
@@ -75,13 +167,11 @@ public class Preprocessing {
 		image.setProcessor(ip);
 	}
 }
-```
-
+</code></pre>
 </details>
 
 
 ## Implement an interface that understands a first sentence
-
 The Natural Language Scripting framework offers a convenient way to define the sentences your interface should understand, and provides an auto-completion enabled text editor for users to enter their instructions. The following code snippet shows how to create a parser, how to define a pattern for a sentence for it to parse, and how to display the editor:
 ```java
 Parser parser = new Parser();
@@ -95,12 +185,53 @@ In this example we state that we expect a literal "Apply Gaussian blurring with 
 
 The code snippet is sufficient to provide the means for user input, but nothing happens yet when the user clicks the `Run` button.
 
-Find more information about [[How to specify variables|Specifying variables]].
+Find more information about <a href="#" onclick="return showDialog('variables')">How to specify variables</a>.
+
+<dialog id="variables">
+<a href="#" style="text-align: right;" onclick="return hideDialog('variables');">close</a>
+## Specifying variables
+### General
+Variables in sentences (and later also in custom types) are specified via `{name:type}`. In
+```java
+parser.defineSentence(
+    "Apply Gaussian blurring with a standard deviation of {stddev:float} pixel(s).", ...);
+```
+there is one variable; a floating point number called `stddev`. 
+
+Next to `float`, a number of built-in types exist (see below).
+
+Variable names can consist of any character but `:`, `{` and `}`.
+
+`type` must be a valid type, i.e. either a built-in type or a custom type. Type names must start with a letter or underscore and they must end with either a letter, a digit or an underscore. They may contains hyphens (`-`). (The regular expression for type names is `[A-Za-z_] ([A-Za-z0-9-_]* [A-Za-z0-9_])?`).
+
+### Quantifiers
+Variable specifications may contain a quantifier: **`{name:type:quantifier}`**. A quantifier specifies how often the `type` is matched. For example, `{pin:digit:4}` would match a 4-digit number called 'pin'. Valid quantifiers:
+- `{pin:digit:4}` matches a number consisting of four digits.
+- `{pin:digit:3-5}` matches a number consisting of 3 to 5 digits.
+- `{pin:digit:*}` matches a number consisting of 0 to infinity digits.
+- `{pin:digit:+}` matches a number consisting of 1 to infinity digits.
+- `{pin:digit:?}` matches a number consisting of 0 to 1 digits.
+
+If a quantifier is used, the variable evaluates to `java.lang.Object[]`, where the actual type of each array entry corresponds to `type` (here: `digit`). See also the paragraph "Evaluating the parsed text".
+
+### Literals
+Variables can also be specified without type and quantifier, like **`{literal}`**. In this case, it matches the constant string 'literal'.
+<br>
+
+In summary, these options exist:
+| Specification            | Meaning                                                                     |
+| ------------------------ | --------------------------------------------------------------------------- |
+| `{name:type}`            | a variable of type `type` called `name`                                     |
+| `{name:type:quantifier}` | a variable of type `type` called `name`, repeated according to `quantifier` |
+| `{literal}`              | a variable of type `type` called `name`                                     |
+
+<a href="#" style="text-align: right;" onclick="return hideDialog('variables');">close</a>
+</dialog>
 
 
 ## Evaluating the parsed text
 The second argument to `parser.defineSentence()`, which was set to `null` above, is of type `Evaluator`. `Evaluator` is an interface with a single function
-```java
+```
 interface Evaluator {
    Object evaluate(ParsedNode pn); 
 }
@@ -125,12 +256,11 @@ new ACEditor(parser).setVisible(true);
 
 This is the first fully working example:
 
-
 <video style="margin: auto; display: block;" width="800" controls>
-  <source src="assets/2023-09-07-13-11-46.cropped.mp4" type="video/mp4">
+  <source src="images/2023-09-07-13-11-46.cropped.mp4" type="video/mp4">
 </video>
 
-https://github.com/nlScript/Bla/assets/40889756/d66a7d14-d770-4e57-92e7-c7f588405c76
+
 
 
 ## Built-in types
@@ -142,231 +272,288 @@ The following tables show other available built-in types:
 
 <details>
 <summary><code>int</code>: An integral number</summary>
-
-<br>
-
-> _Example:_ `{page:int}` Defines a parameter 'page' as an integral number.<br><br>
-> _Parses e.g.:_ `5`<br><br>
-> _Evaluates to:_ `java.lang.Integer`<br>
-
-<br>
-
+<div class="content">
+<p><em>Example:</em> <code>{page:int}</code> Defines a parameter 'page' as an integral number.</p>
+<p><em>Parses e.g.: </em><code>5</code></p>
+<p><em>Evaluates to: </em><code>java.lang.Integer</code></p>
+</div>
 </details>
 
 <details>
 <summary><code>float</code>: A floating-point number</summary>
-
-<br>
-
-> _Example:_ `{sigma:float}` Defines a parameter 'sigma' as a floating-point number.<br><br>
-> _Parses e.g.:_ `5.3`<br><br>
-> _Evaluates to:_ `java.lang.Double`<br>
-
-<br>
-
+<div class="content">
+<p><em>Example: </em><code>{sigma:float}</code> Defines a parameter 'sigma' as a floating-point number.
+<p><em>Parses e.g.: </em><code>5.3</code></p>
+<p><em>Evaluates to: </em><code>java.lang.Double</code></p>
+</div>
 </details>
 
 <details>
 <summary><code>digit</code>: A character from '0' to '9'</summary>
-
-<br>
-
-> _Example:_ <code>{ch:digit}</code> Defines a parameter 'ch' as a digit.<br><br>
-> _Parses e.g.:_ `3`<br><br>
-> _Evaluates to:_ `java.lang.Character`<br>
-
-<br>
-
+<div class="content">
+<p><em>Example: </em><code>{ch:digit}</code> Defines a parameter 'ch' as a digit.
+<p><em>Parses e.g.: </em><code>3</code></p>
+<p><em>Evaluates to: </em><code>java.lang.Character</code></p>
+</div>
 </details>
 
 <details>
 <summary><code>letter</code>: A character A-Z or a-z</summary>
-
-<br>
-
-> _Example:_ `{ch:letter}` Defines a parameter 'ch' as a letter.<br><br>
-> _Parses e.g.:_ `b`<br><br>
-> _Evaluates to:_ `java.lang.Character`<br>
-
-<br>
-
+<div class="content">
+<p><em>Example: </em><code>{ch:letter}</code> Defines a parameter 'ch' as a letter.
+<p><em>Parses e.g.: </em><code>b</code></p>
+<p><em>Evaluates to: </em><code>java.lang.Character</code></p>
+</div>
 </details>
 
 <details>
 <summary><code>path</code>: A path within the local file system</summary>
-
-<br>
-
-> _Example:_ `{inputfile:path}` Defines a parameter 'inputfile' as a file system path.<br><br>
-> _Parses e.g.:_ `'C:\Program Files'`<br><br>
-> _Evaluates to:_ `java.lang.String`<br>
-
-<br>
-
+<div class="content">
+<p><em>Example: </em><code>{inputfile:path}</code> Defines a parameter 'inputfile' as a file system path.
+<p><em>Parses e.g.: </em><code>'C:\Program Files'</code></p>
+<p><em>Evaluates to: </em><code>java.lang.String</code></p>
+</div>
 </details>
 
 <details>
 <summary><code>color</code>: A color</summary>
-
-<br>
-
-> _Example:_ `{text-color:color}` Defines a parameter 'text-color' as a color.<br><br>
-> _Parses e.g.:_ `(25, 0, 233)` as an RGB value or one of the pre-defined colors below.<br><br>
-> _Evaluates to:_ `int` representing the RGB value of the color. Conversion between `int` and `java.awt.Color` is possible using `new Color(int)` and `Color.toRGB()`.<br><br>
-> Pre-defined colors:
-> * ${\color[RGB]{0, 0, 0}       &#9632}$ black (0, 0, 0)
-> * ${\color[RGB]{255, 255, 255} &#9632}$ white (255, 255, 255)
-> * ${\color[RGB]{255, 0, 0}     &#9632}$ red (255, 0, 0)
-> * ${\color[RGB]{255, 128, 0}   &#9632}$ orange (255, 128, 0)
-> * ${\color[RGB]{255, 255, 0}   &#9632}$ yellow (255, 255, 0)
-> * ${\color[RGB]{128, 255, 0}   &#9632}$ lawn green (128, 255, 0)
-> * ${\color[RGB]{0, 255, 0}     &#9632}$ green (0, 255, 0)
-> * ${\color[RGB]{0, 255, 180}   &#9632}$ spring green (0, 255, 180)
-> * ${\color[RGB]{0, 255, 255}   &#9632}$ cyan (0, 255, 255)
-> * ${\color[RGB]{0, 128, 255}   &#9632}$ azure (0, 128, 255)
-> * ${\color[RGB]{0, 0, 255}     &#9632}$ blue (0, 0, 255)
-> * ${\color[RGB]{128, 0, 255}   &#9632}$ violet (128, 0, 255)
-> * ${\color[RGB]{255, 0, 255}   &#9632}$ magenta (255, 0, 255)
-> * ${\color[RGB]{255, 0, 128}   &#9632}$ pink (255, 0, 128)
-> * ${\color[RGB]{128, 128, 128} &#9632}$ gray (128, 128, 128)
-
+<div class="content">
+<p><em>Example: </em><code>{text-color:color}</code> Defines a parameter 'text-color' as a color.
+<p><em>Parses e.g.: </em><code>(25, 0, 233)</code> as an RGB value or one of the pre-defined colors below.</p>
+<p><em>Evaluates to: </em><code>int</code> representing the RGB value of the color. Conversion between <code>int</code> and <code>java.awt.Color</code> is possible using <code>new Color(int)</code> and <code>Color.toRGB()</code>.</p>
+<p>Pre-defined colors:</p>
+<ul>
+<li><span style="background-color: rgb(0, 0, 0);       width: 1em; display: inline-block; height: 0.6em; border: black solid 1px;"></span>  black (0, 0, 0)
+<li><span style="background-color: rgb(255, 255, 255); width: 1em; display: inline-block; height: 0.6em; border: black solid 1px;"></span>  white (255, 255, 255)
+<li><span style="background-color: rgb(255, 0, 0);     width: 1em; display: inline-block; height: 0.6em; border: black solid 1px;"></span>  red (255, 0, 0)
+<li><span style="background-color: rgb(255, 128, 0);   width: 1em; display: inline-block; height: 0.6em; border: black solid 1px;"></span>  orange (255, 128, 0)
+<li><span style="background-color: rgb(255, 255, 0);   width: 1em; display: inline-block; height: 0.6em; border: black solid 1px;"></span>  yellow (255, 255, 0)
+<li><span style="background-color: rgb(128, 255, 0);   width: 1em; display: inline-block; height: 0.6em; border: black solid 1px;"></span>  lawn green (128, 255, 0)
+<li><span style="background-color: rgb(0, 255, 0);     width: 1em; display: inline-block; height: 0.6em; border: black solid 1px;"></span>  green (0, 255, 0)
+<li><span style="background-color: rgb(0, 255, 180);   width: 1em; display: inline-block; height: 0.6em; border: black solid 1px;"></span>  spring green (0, 255, 180)
+<li><span style="background-color: rgb(0, 255, 255);   width: 1em; display: inline-block; height: 0.6em; border: black solid 1px;"></span>  cyan (0, 255, 255)
+<li><span style="background-color: rgb(0, 128, 255);   width: 1em; display: inline-block; height: 0.6em; border: black solid 1px;"></span>  azure (0, 128, 255)
+<li><span style="background-color: rgb(0, 0, 255);     width: 1em; display: inline-block; height: 0.6em; border: black solid 1px;"></span>  blue (0, 0, 255)
+<li><span style="background-color: rgb(128, 0, 255);   width: 1em; display: inline-block; height: 0.6em; border: black solid 1px;"></span>  violet (128, 0, 255)
+<li><span style="background-color: rgb(255, 0, 255);   width: 1em; display: inline-block; height: 0.6em; border: black solid 1px;"></span>  magenta (255, 0, 255)
+<li><span style="background-color: rgb(255, 0, 128);   width: 1em; display: inline-block; height: 0.6em; border: black solid 1px;"></span>  pink (255, 0, 128)
+<li><span style="background-color: rgb(128, 128, 128); width: 1em; display: inline-block; height: 0.6em; border: black solid 1px;"></span>  gray (128, 128, 128)
+</ul>
+</div>
 </details>
 
 <details>
 <summary><code>weekday</code>: Day of the week</summary>
-
-<br>
-
-> _Example:_ `{meeting-day:weekday}` Defines a parameter 'meeting-day' as a weekday.<br><br>
-> _Parses e.g.:_ `Monday` one of the pre-defined weekdays below.<br><br>
-> _Evaluates to:_ `java.lang.Integer`, starting with `0` for `Monday`<br><br>
-> Pre-defined weekdays:
-> * Monday (0)
-> * Tuesday (1)
-> * Wednesday (2)
-> * Thursday (3)
-> * Friday (4)
-> * Saturday (5)
-> * Sunday (6)
-
+<div class="content">
+<p><em>Example: </em><code>{meeting-day:weekday}</code> Defines a parameter 'meeting-day' as a weekday.
+<p><em>Parses e.g.: </em><code>Monday</code> one of the pre-defined weekdays below.</p>
+<p><em>Evaluates to: </em><code>java.lang.Integer</code>, starting with <code>0</code> for <code>Monday</code></p>
+<p>Pre-defined weekdays:</p>
+<ul>
+<li>Monday (0)
+<li>Tuesday (1)
+<li>Wednesday (2)
+<li>Thursday (3)
+<li>Friday (4)
+<li>Saturday (5)
+<li>Sunday (6)
+</ul>
+</div>
 </details>
 
 <details>
 <summary><code>month</code>: A month</summary>
-
-<br>
-
-> _Example:_ `{month-of-start:month}` Defines a parameter 'month-of-start' as a month.<br><br>
-> _Parses e.g.:_ `January` one of the pre-defined months below.<br><br>
-> _Evaluates to:_ `java.lang.Integer`, starting with `0` for `January`<br><br>
-> Pre-defined months:
-> * January (0)
-> * February (1)
-> * March (2)
-> * April (3)
-> * May (4)
-> * June (5)
-> * July (6)
-> * August (7)
-> * September (8)
-> * October (9)
-> * November (10)
-> * December (11)
-
+<div class="content">
+<p><em>Example: </em><code>{month-of-start:month}</code> Defines a parameter 'month-of-start' as a month.
+<p><em>Parses e.g.: </em><code>January</code> one of the pre-defined months below.</p>
+<p><em>Evaluates to: </em><code>java.lang.Integer</code>, starting with <code>0</code> for <code>January</code></p>
+<p>Pre-defined months:</p>
+<ul>
+<li>January (0)
+<li>February (1)
+<li>March (2)
+<li>April (3)
+<li>May (4)
+<li>June (5)
+<li>July (6)
+<li>August (7)
+<li>September (8)
+<li>October (9)
+<li>November (10)
+<li>December (11)
+</ul>
+</div>
 </details>
 
 <details>
 <summary><code>date</code>: A date</summary>
-
-<br>
-
-> _Example:_ `{date-of-birth:date}` Defines a parameter 'date-of-birth' as a date.<br><br>
-> _Parses e.g.:_ `01 January 2020`<br><br>
-> _Evaluates to:_ `java.time.LocalDate`<br>
-
-<br>
-
+<div class="content">
+<p><em>Example: </em><code>{date-of-birth:date}</code> Defines a parameter 'date-of-birth' as a date.
+<p><em>Parses e.g.: </em><code>01 January 2020</code></p>
+<p><em>Evaluates to: </em><code>java.time.LocalDate</code></p>
+</div>
 </details>
 
 <details>
 <summary><code>time</code>: A time</summary>
-
-<br>
-
-> _Example:_ `{alarm:time}` Defines a parameter 'alarm' as a time.<br><br>
-> _Parses e.g.:_ `6:30`<br><br>
-> _Evaluates to:_ `java.time.LocalTime`<br>
-
-<br>
-
+<div class="content">
+<p><em>Example: </em><code>{alarm:time}</code> Defines a parameter 'alarm' as a time.
+<p><em>Parses e.g.: </em><code>6:30</code></p>
+<p><em>Evaluates to: </em><code>java.time.LocalTime</code></p>
+</div>
 </details>
 
 <details>
 <summary><code>datetime</code>: A date and time</summary>
-
-<br>
-
-> _Example:_ `{meeting-start:datetime}` Defines a parameter 'meeting-start' as a date and time.<br><br>
-> _Parses e.g.:_ `01 January 2020 14:30`<br><br>
-> _Evaluates to:_ `java.time.LocalDateTime`<br>
-
-<br>
-
+<div class="content">
+<p><em>Example: </em><code>{meeting-start:datetime}</code> Defines a parameter 'meeting-start' as a date and time.
+<p><em>Parses e.g.: </em><code>01 January 2020 14:30</code></p>
+<p><em>Evaluates to: </em><code>java.time.LocalDateTime</code></p>
+</div>
 </details>
 
 <details>
 <summary><code>tuple&lt;type,n1,n2,...&gt;</code>: An n-dimensional tuple of comma-separated elements surrounded by <code>(</code>, <code>)</code></summary>
-
-<br>
-
-> _Example:_ `{point:tuple<int,x,y>}` Defines a parameter 'point' as a 2-tuple with entries named 'x' and 'y', the type of which is `int`<br><br>
-> _Parses e.g.:_ `(15, 30)`<br><br>
-> _Evaluates to:_ `java.lang.Object[]`. The actual type of each entry depends on `type` (In the example, the type is `int`, so each entry in the array is a `java.lang.Integer`).<br><br>
-`type` can also be a custom-defined type (see below)
-
-<br>
-
+<div class="content">
+<p><em>Example: </em><code>{point:tuple&lt;int,x,y&gt;}</code> Defines a parameter 'point' as a 2-tuple with entries named 'x' and 'y', the type of which is <code>int</code></p>
+<p><em>Parses e.g.: </em><code>(15, 30)</code></p>
+<p><em>Evaluates to: </em><code>java.lang.Object[]</code>. The actual type of each entry depends on <code>type</code> (In the example, the type is <code>int</code>, so each entry in the array is a <code>java.lang.Integer</code>).</p>
+<p><code>type</code> can also be a custom-defined type (see below)</p>
+</div>
 </details>
 
 <details>
 <summary><code>list&lt;type&gt;</code>: An (unbound) comma-separated list</summary>
+<div class="content">
+<p><em>Example: </em><code>{colors:list&lt;color&gt;}</code> Defines a parameter 'colors' as a list with entries of type <code>color</code>.</p>
+<p><em>Parses e.g.: </em><code>green, blue, yellow, (255, 30, 20)</code></p>
+<p><em>Evaluates to: </em><code>java.lang.Object[]</code>. The actual type of each entry depends on <code>type</code> (In the example, the type is <code>color</code>, so each entry in the array is a <code>java.awt.Color</code>).</p>
+<p><code>type</code> can also be a custom-defined type (see below)</p>
 
-<br>
-
-> _Example:_ `{colors:list<color>}` Defines a parameter 'colors' as a list with entries of type `color`.<br><br>
-> _Parses e.g.:_ `green, blue, yellow, (255, 30, 20)`<br><br>
-> _Evaluates to:_ `java.lang.Object[]`. The actual type of each entry depends on `type` (In the example, the type is `color`, so each entry in the array is a `java.awt.Color`).<br><br>
-`type` can also be a custom-defined type (see below)<br><br>
-> Furthermore, the cardinality of a list can be constrained:
-> * `{colors:list<color>:5}` accepts only lists with exactly 5 colors
-> * `{colors:list<color>:3-5}` accepts only lists with 3 to 5 colors
-> * `{colors:list<color>:\*}` accepts lists with 0 to infinity colors
-> * `{colors:list<color>:+}` accepts lists with 1 to infinity colors
-> * `{colors:list<color>:?}` accepts lists with 0 or 1 colors
-
+<p>Furthermore, the cardinality of a list can be constrained:<p>
+<ul>
+<li><code>{colors:list&lt;color&gt;:5}</code> accepts only lists with exactly 5 colors
+<li><code>{colors:list&lt;color&gt;:3-5}</code> accepts only lists with 3 to 5 colors
+<li><code>{colors:list&lt;color&gt;:\*}</code> accepts lists with 0 to infinity colors
+<li><code>{colors:list&lt;color&gt;:+}</code> accepts lists with 1 to infinity colors
+<li><code>{colors:list&lt;color&gt;:?}</code> accepts lists with 0 or 1 colors
+</ul>
+</div>
 </details>
 
 <details>
 <summary>Character class like <code>[a-zA-Z]</code>: A definable character</summary>
+<div class="content">
+<p><em>Example: (1) </em><code>{ch1:[a-z0-9]}</code> or (2) <code>{ch2:[^0-9]}</code></p>
+<p><em>Parses: </em> (1) Any lower-case letter or digit and (2) any character that is not a digit</p>
+<p>Evaluates to: <code>java.lang.Character</code>. If a quantifier is used, it evaluates to <code>java.lang.Object[]</code>, where each entry is of type <code>java.lang.Character</code>. If you want to get the parsed string instead, you can use <code>ParsedNode.getParsedString()</code> instead of <code>ParsedNode.evaluate()</code>.</p>
+<p>Some more examples:</p>
+<ul>
+<li><code>[a-zAB567]</code> matches a character 'a' - 'z', 'A', 'B', '5', '6' or '7'.
+<li><code>[^1-35]</code> matches any character which is not '1', '2', '3' or '5'.
+</ul>
 
-<br>
+<p>Furthermore, character classes can be extended to specify strings, by specifying the number of characters to match. In this case, it evaluates to <code>java.lang.String</code>.</p>
+<ul>
+<li><code>{identifier:[a-z]:5}</code> accepts a string consisting of 5 lower-case letters.
+<li><code>{identifier:[a-z]:3-5}</code> accepts a string consisting of 3-5 lower-case letters.
+<li><code>{identifier:[a-z]:\*}</code> accepts a string consisting of 0 to infinity lower-case letters.
+<li><code>{identifier:[a-z]:+}</code> accepts a string consisting of 1 to infinity lower-case letters.
+<li><code>{identifier:[a-z]:?}</code> accepts a string consisting of 0 or 1 lower-case letters.
+</ul>
 
-> _Example: (1)_ `{ch1:[a-z0-9]}` or (2) `{ch2:[^0-9]}`<br><br>
-> _Parses:_  (1) Any lower-case letter or digit and (2) any character that is not a digit<br><br>
-> _Evaluates to:_ `java.lang.Character`. If a quantifier is used, it evaluates to `java.lang.Object[]`, where each entry is of type `java.lang.Character`. If you want to get the parsed string instead, you can use `ParsedNode.getParsedString()` instead of `ParsedNode.evaluate()`.<br><br>
-> Some more examples:
-> * `[a-zAB567]` matches a character 'a' - 'z', 'A', 'B', '5', '6' or '7'.
-> * `[^1-35]` matches any character which is not '1', '2', '3' or '5'.
-> 
-> 
-> Furthermore, character classes can be extended to specify strings, by specifying the number of characters to match. In this case, it evaluates to `java.lang.String`.
-> * `{identifier:[a-z]:5}` accepts a string consisting of 5 lower-case letters.
-> * `{identifier:[a-z]:3-5}` accepts a string consisting of 3-5 lower-case letters.
-> * `{identifier:[a-z]:\*}` accepts a string consisting of 0 to infinity lower-case letters.
-> * `{identifier:[a-z]:+}` accepts a string consisting of 1 to infinity lower-case letters.
-> * `{identifier:[a-z]:?}` accepts a string consisting of 0 or 1 lower-case letters.
-
+</div>
 </details>
+
+</div>
+
+<!-- | Specified type | Java type   | Description                         | Example                                                                                       | -->
+<!-- |----------------|-------------|-------------------------------------|-----------------------------------------------------------------------------------------------| -->
+<!-- | `int`          | `Integer`   | An integral number                  | `{page:int}`<br><br> Defines a parameter named 'page', which can be an integral number        | -->
+<!-- | `float`        | `Float`     | A floating point number             | `{sigma:float}`<br><br> Defines a parameter 'sigma' as a floating point number                | -->
+<!-- | `digit`        | `Character` | A character 0-9                     | <br><br>                                                                                      | -->
+<!-- | `letter`       | `Character` | A character A-Z or a-z              | <br><br>                                                                                      | -->
+<!-- | `path`         | `String`    | A path within the local file system | <br><br>                                                                                      | -->
+
+<!-- #### ... and more to come: -->
+<!-- | Specified type | Java type | Description                         | Example                                                                                         | -->
+<!-- |----------------|-----------|-------------------------------------|-------------------------------------------------------------------------------------------------| -->
+<!-- | `color`        | `Color`   | A color                             | <br><br>                                                                                        | -->
+<!-- | `date`         | `Long`    | A date                              | <br><br>                                                                                        | -->
+<!-- | `time`         | `Long`    | A time                              | <br><br>                                                                                        | -->
+<!-- | `datetime`     | `Long`    | A date and time                     | <br><br>                                                                                        | -->
+
+<!-- #### ... and some combined types: -->
+<!-- | Specified type                   | Java type | Description                         | Example                                                                       | -->
+<!-- |----------------------------------|-----------|-------------------------------------|-------------------------------------------------------------------------------| -->
+<!-- | `tuple<type, n1, n2, ...>` | `type[]`  | An n-dimensional tuple, with `type` being any built-in or previously defined type, and `n1`..`nN` being the names of the n tuple entries. It matches `(e1,e2,...)`  | **`{point:tuple<int,x,y>}`**<br><br>Defines a parameter 'point' as a 2-tuple with entries named 'x' and 'y'. It matches e.g. `(3, 5)` and evaluates to the Java `Integer[]` type.     | -->
+<!-- | `list<type>`                     | `type[]`  | An unbound list of elements of type `type`, separated by comma. Matches `e1, e2, e3, ...` | `{coordinates:list<point>}`<br><br>Defines a parameter 'coordinates' as a list of points, it matches e.g. `(3, 5), (4, 6), (8, 15)` and evaluates to `Integer[][]`. | -->
+<!-- | (`Character class`)        | `Character`    | A charachter in the specified range | `{name:[a-zAB567]}`<br>matches a character a-z, A-B, 5, 6 or 7<br>`{name:[^1-35]}`<br>matches a character which is neither in the range 1-3 nor 5.                                                  | -->
+
+
+<dialog id="custom-types">
+<a href="#" style="text-align: right;" onclick="return hideDialog('custom-types');">close</a>
+## Custom types
+### Defining a new generic color type based on RGB values
+Custom types can be defined using built-in types and other custom types. In this way, an entire hierarchy of types can be built up. To demonstrate how custom types are defined, I will implement a type `my-color`, because color is perfectly suited to visualize the concept of types, although a type `color` already exists. In contrast to the existing `color` type, I want `my-color` to match `rgb(...)`, i.e. the string `rgb` followed by a 3-tuple with the values for red, green and blue.
+
+Defining a custom type is similar to defining a sentence as shown earlier, indeed `defineSentence` is just a shortcut for defining (or extending) the type `sentence`:
+
+```java
+Parser parser = new Parser();
+parser.defineType("my-color", "rgb({red:int}, {green:int}, {blue:int})", pn -> {
+	int red = (int) pn.evaluate("red");
+	int green = (int) pn.evaluate("green");
+	int blue = (int) pn.evaluate("blue");
+	return new java.awt.Color(red, green, blue);
+});
+```
+
+`defineType` has 3 arguments:
+- A name for the type, which can be used in later type definitions<br>Like an integral number is of type `int`, our color will be of type `my-color`.
+
+- A pattern that defines how the type should be parsed<br>`"rgb({red:int}, {green:int}, {blue:int})"` means that our new type will consist of the string 'rgb', followed by a 3-tuple with integral values named 'red', 'green' and 'blue' for the red, green and blue color component. `my-color` consists of three variables `red`, `green` and `blue`, which are of type `int` and which can be accessed in the evaluator by their name.
+
+- An evaluator<br>The evaluator returns a Java object corresponding to the parsed and interpreted type (here a `java.awt.Color`). Typically, an evaluator will evaluate its variables to construct a Java object from them. Here, it evaluates the 3 integrals `red`, `green` and `blue` and constructs a `java.awt.Color` from them, which it returns.
+
+The new type can now be used in `defineSentence`, or to define other types via `defineType`:
+
+```java
+parser.defineSentence("Set the drawing color to {color:my-color}.", pn -> null);
+```
+
+### Defining a new generic color type based on a set of named colors
+We can also define a new type with a fixed set of options, i.e. a set of pre-defined named colors. This is implemented by repeatedly defining a type with different patterns:
+```
+Parser parser = new Parser();
+parser.defineType("my-color", "white", pn -> new java.awt.Color(255, 255, 255));
+parser.defineType("my-color", "black", pn -> new java.awt.Color(0, 0, 0));
+parser.defineType("my-color", "red",   pn -> new java.awt.Color(255, 0, 0));
+parser.defineType("my-color", "green", pn -> new java.awt.Color(0, 255, 0));
+...
+parser.defineSentence("Set the drawing color to {color:my-color}.", pn -> null);
+```
+
+### Combining generic and preset type definitions
+The above two concepts can also be combined, which allows the user to select a color from a pre-defined list, but also leaves the freedom to provide a custom color which is not in the list, by specifying its RGB values:
+
+```java
+Parser parser = new Parser();
+parser.defineType("my-color", "rgb({red:int}, {green:int}, {blue:int})", pn -> {
+	int red = (int) pn.evaluate("red");
+	int green = (int) pn.evaluate("green");
+	int blue = (int) pn.evaluate("blue");
+	return new java.awt.Color(red, green, blue);
+});
+parser.defineType("my-color", "white", pn -> new java.awt.Color(255, 255, 255));
+parser.defineType("my-color", "black", pn -> new java.awt.Color(0, 0, 0));
+parser.defineType("my-color", "red",   pn -> new java.awt.Color(255, 0, 0));
+parser.defineType("my-color", "green", pn -> new java.awt.Color(0, 255, 0));
+...
+parser.defineSentence("Set the drawing color to {color:my-color}.", pn -> null);
+```
+<a href="#" style="text-align: right;" onclick="return hideDialog('custom-types');">close</a>
+</dialog>
 
 
 
@@ -391,26 +578,63 @@ Autocompletion and evaluation will work as before, but the type `filter-size` ca
 Custom types can be defined using built-in types and other custom types. In this way, an entire hierarchy of types can be built up. Here are more <a href="#" onclick="return showDialog('type-hierarchy')">Details about type hierarchy</a>.
 
 
+<dialog id="type-hierarchy">
+<a href="#" style="text-align: right;" onclick="return hideDialog('type-hierarchy');">close</a>
+
+
+
+A key feature is the definition of custom types, which itself can be composed of built-in or custom types in turn, to build a type hierarchy. Custom types are defined like sentences, but using the parser's `defineType()` method:
+```java
+Parser parser = new Parser();
+parser.defineType("interval", "[{from:int}; {to:int}]", pn -> null, true);
+```
+Its first argument is the name of the type ('interval'). Analogous to `defineSentence()`,  the second argument is a parametrized string (here, two integral numbers with names 'from' and 'to', separated by a semicolon and enclosed by square brackets). The third and fourth argument are skipped here for simplicity. The expression defined above parses, e.g., '[-3; 3]'.
+
+Custom types are used to define other custom types or to define sentences, e.g.:
+```java
+parser.defineSentence("Set the stage limits to {limits:interval}.", pn -> null);
+```
+Types are typically built up of other types, so that a type hierarchy arises. This hierarchy is preserved after parsing and is reflected in the tree structure of the `ParsedNode` (`pn`) object provided to the `Evaluator`. For debugging purposes, the parsed tree can be visualized:
+```java
+try {
+	ParsedNode pn = parser.parse("Set the stage limits to [-3; 3].", null);
+	System.out.println(GraphViz.toVizDotLink(pn));
+} catch(ParseException e) {
+	System.out.println(GraphViz.toVizDotLink(e.getRoot()));
+	e.printStackTrace();
+}
+```
+
+![](images/parsed-trees.png)
+
+Here, the root node `S'` consists of the parsed `program` followed by `EOI` (end-of-input). A `program` consists of a number of `sentence`s (here, a single one is parsed). The parsed `sentence` consists of the string 'Set the stage limits to', followed by one or more whitespace characters, followed by a variable named 'limits', followed by a fullstop etc.
+
+Nodes are color-coded for their parsing state: If a node was parsed successfully, it is outlined green, if a parsing error occurred, it is outlined red. Nodes which encountered the end of the input during parsing are outlined orange. The right image above shows the parsed tree resulting from parsing
+```java
+ParsedNode pn = parser.parse("Set the stage limits to [a; 3].", null);
+```
+
+<a href="#" style="text-align: right;" onclick="return hideDialog('type-hierarchy');">close</a>
+</dialog>
+
+
 
 
 ## Fine-tuning autocompletion: Parameterized autocompletion
 Defining custom types has an additional advantage: It allows to customize autocompletion. In the example above, with default autocompletion in place, autocompletion looks like
 
-<p align="center">
-<img src="assets/Screenshot-01.png" />
-</p>
+![](images/Screenshot-01.png)
 
 The user sees that a value for the `stddev` parameter is required, but doesn't know in which units the value needs to be entered. Usage is much clearer if we use inline, or parameterized autocompletion:
 
-<p align="center">
-<img src="assets/Screenshot-02.png" />
-</p>
+![](images/Screenshot-02.png)
 
 This is accomplished by specifying a 4th parameter to `defineType`, a boolean that specifies whether to use parameterized autocompletion or not (`false` is the default):
 
 ```java
 parser.defineType("filter-size", "{stddev:float} pixel(s)", pn -> pn.evaluate("stddev"), true);
 ```
+
 
 
 ## Multiple-choice autocompletion: choose a unit for `filter-size`
@@ -436,18 +660,12 @@ parser.defineType("filter-size", "{stddev:float} {units:units}", pn -> {
 In `evaluate()` we use `pn` to retrieve the values for `stddev` and `units`. If `units` evaluates to `true` (indicating that the user chose `calibrated units`), we calculate the filter-size in pixels, dividing by the pixel size.
 
 Autocompletion will now look as follows:
-<p align="center">
-<img src="assets/Screenshot-03.png" />
-</p>
+![](images/Screenshot-03.png)
 Then, after typing `5`, followed by `tab`:
-<p align="center">
-<img src="assets/Screenshot-04.png" />
-</p>
+![](images/Screenshot-04.png)
 
 <details><summary><b>Here is the full code snippet:</b></summary>
-
-```java
-import ij.IJ;
+<pre><code>import ij.IJ;
 import de.nls.Parser;
 import de.nls.ui.ACEditor;
 import ij.ImagePlus;
@@ -483,10 +701,8 @@ public class Tutorial05 {
         new ACEditor(parser).setVisible(true);
     }
 }
-```
-
+</code></pre>
 </details>
-
 
 ## Dynamic autocompletion at runtime using a custom `Autocompleter`
 
@@ -526,9 +742,7 @@ parser.addParseStartListener(() -> {
 Once autocompletion hits the `units` phrase, it displays a dropdown menu with the 2 options `pixel(s)` and `mm`, as desired.
 
 <details><summary><b>Here is the full code snippet:</b></summary>
-
-```java
-import de.nls.Parser;
+<pre><code>import de.nls.Parser;
 import de.nls.core.Autocompletion;
 import de.nls.ui.ACEditor;
 import ij.IJ;
@@ -580,10 +794,9 @@ public class Tutorial06 {
         new ACEditor(parser).setVisible(true);
     }
 }
-```
-
+              
+</code></pre>
 </details>
-
 
 
 ## Prohibit further autocompletion: `Autocompleter.VETO`
@@ -600,7 +813,6 @@ parser.defineType(
 ```
 
 
-
 ## Dynamically re-defining types
 
 The above solution works, but the meaning is a little different from what we wanted to achieve originally. Although it shows `pixel(s)` and `mm` as completion options, it accepts any string (we defined the pattern to parse to be `a-zA-Z()`). In fact, we'd ideally like to restrict possible types to `pixel(s)` and `mm`. And we can implement this by dynamically changing the parser, i.e. re-defining the type `units`. We do this again with a `ParseStartListener`:
@@ -615,15 +827,12 @@ parser.addParseStartListener(() -> {
     parser.defineType("units", unitsString, pn -> true);
 });
 ```
-
 This does now exactly what we wanted, i.e. it acts like the `units` type was defined from the beginning on with the calibration unit of the image.
 
 This is indeed a very powerful feature, as it allows for dynamic re-definition of the parsed language, based on current runtime circumstances.
 
 <details><summary><b>Again, here is the full code snippet:</b></summary>
-
-```
-import de.nls.Parser;
+<pre><code class="language-java">import de.nls.Parser;
 import de.nls.ui.ACEditor;
 import ij.IJ;
 import ij.ImagePlus;
@@ -675,9 +884,15 @@ public class Tutorial07 {
         new ACEditor(parser).setVisible(true);
     }
 }
-```
-
+</code></pre>
 </details>
+
+
+
+<br>
+<br>
+<br>
+
 
 
 

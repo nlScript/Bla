@@ -2,6 +2,10 @@
 
 ## Why use a natural scripting interface
 
+<div style="background-color: green;">
+hehehe
+</div>
+
 Graphical user interfaces can easily become complex and confusing as the number of user input parameters increases. This is particularly true if a workflow needs to be configured, where (i) each step has its own set of parameters, (ii) steps can occur in any order and (iii) steps can be repeated arbitrarily. Consider the configuration of an image pre-processing workflow, which consists of the following algorithms, each having its own set of parameters:
 - Gaussian blurring (standard deviation)
 - Median filtering (window radius)
